@@ -37,4 +37,13 @@ export class EventsController {
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.eventsService.findById(id);
   }
+
+  // GET /admin/events/:id/stats - Get event statistics (admin only)
+  // Requirements: 10.1, 10.2, 10.3
+  @Get('admin/events/:id/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getStats(@Param('id', ParseUUIDPipe) id: string) {
+    return this.eventsService.getStats(id);
+  }
 }

@@ -7,6 +7,15 @@ import { QueueEntry, QueueEntryStatus } from './entities/queue-entry.entity';
 import { RedisService } from '../redis/redis.service';
 import { EventsService } from '../events/events.service';
 import { ReservationsService } from '../reservations/reservations.service';
+import { NotificationService } from '../notification/notification.service';
+
+const mockNotificationService = {
+  notifyQueuePosition: jest.fn(),
+  notifyActiveStatus: jest.fn(),
+  notifySoldOut: jest.fn(),
+  notifyReservationExpired: jest.fn(),
+  notifyPaymentSuccess: jest.fn(),
+};
 
 /**
  * **Feature: nest-ticket-queue, Property 2: Queue Join Idempotency**
@@ -116,6 +125,10 @@ describe('Property 2: Queue Join Idempotency', () => {
         {
           provide: ReservationsService,
           useValue: mockReservationsService,
+        },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
         },
       ],
     }).compile();
@@ -282,6 +295,10 @@ describe('Property 3: Sales Period Enforcement', () => {
         {
           provide: ReservationsService,
           useValue: mockReservationsService,
+        },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
         },
       ],
     }).compile();
@@ -560,6 +577,10 @@ describe('Property 4: Queue Promotion FIFO Order', () => {
           provide: ReservationsService,
           useValue: mockReservationsService,
         },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
+        },
       ],
     }).compile();
 
@@ -834,6 +855,10 @@ describe('Property 6: Reservation Seat Decrement Atomicity (Oversell Prevention)
           provide: ReservationsService,
           useValue: mockReservationsService,
         },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
+        },
       ],
     }).compile();
 
@@ -1107,6 +1132,10 @@ describe('Property 9: Concurrent Last-Seat Reservation', () => {
         {
           provide: ReservationsService,
           useValue: mockReservationsService,
+        },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
         },
       ],
     }).compile();

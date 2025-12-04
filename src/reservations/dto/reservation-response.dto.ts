@@ -1,5 +1,6 @@
 import { Expose, Transform, Type } from 'class-transformer';
-import { IsString, IsInt, IsDate, IsUUID, Min } from 'class-validator';
+import { IsUUID, IsEnum, IsDate, IsOptional } from 'class-validator';
+import { ReservationStatus } from '../entities/reservation.entity';
 
 // Helper function to safely convert Date to ISO string
 const dateToIsoString = (value: unknown): string | unknown => {
@@ -9,36 +10,35 @@ const dateToIsoString = (value: unknown): string | unknown => {
   return value;
 };
 
-export class EventResponseDto {
+export class ReservationResponseDto {
   @Expose()
   @IsUUID()
   id!: string;
 
   @Expose()
-  @IsString()
-  name!: string;
+  @IsUUID()
+  eventId!: string;
 
   @Expose()
-  @IsInt()
-  @Min(0)
-  totalSeats!: number;
+  @IsUUID()
+  userId!: string;
 
   @Expose()
-  @IsInt()
-  @Min(0)
-  remainingSeats!: number;
-
-  @Expose()
-  @IsDate()
-  @Type(() => Date)
-  @Transform(({ value }) => dateToIsoString(value), { toPlainOnly: true })
-  salesStartAt!: Date;
+  @IsEnum(ReservationStatus)
+  status!: ReservationStatus;
 
   @Expose()
   @IsDate()
   @Type(() => Date)
   @Transform(({ value }) => dateToIsoString(value), { toPlainOnly: true })
-  salesEndAt!: Date;
+  expiresAt!: Date;
+
+  @Expose()
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  @Transform(({ value }) => dateToIsoString(value), { toPlainOnly: true })
+  paidAt?: Date | null;
 
   @Expose()
   @IsDate()

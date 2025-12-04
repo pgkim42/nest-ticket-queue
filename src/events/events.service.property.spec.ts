@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventsService } from './events.service';
 import { Event } from './entities/event.entity';
+import { Reservation } from '../reservations/entities/reservation.entity';
 import { RedisService } from '../redis/redis.service';
 import { CreateEventDto } from './dto/create-event.dto';
 
@@ -43,12 +44,20 @@ describe('Property 1: Event Creation Initializes Redis Counter', () => {
       }),
     };
 
+    const mockReservationRepository = {
+      createQueryBuilder: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EventsService,
         {
           provide: getRepositoryToken(Event),
           useValue: mockEventRepository,
+        },
+        {
+          provide: getRepositoryToken(Reservation),
+          useValue: mockReservationRepository,
         },
         {
           provide: RedisService,

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nest Ticket Queue - Demo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .notification-log {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .event-card {
+      transition: box-shadow 0.2s;
+    }
+    .event-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title has-text-centered">🎫 Nest Ticket Queue Demo</h1>
+      <p class="subtitle has-text-centered has-text-grey">실시간 티켓 대기열 시스템</p>
+
+      <div class="columns">
+        <div class="column is-8 is-offset-2">
+
+          <!-- Login Section -->
+          <div class="box" id="login-section">
+            <h2 class="title is-5">🔐 로그인</h2>
+            <div class="field">
+              <label class="label">이메일</label>
+              <div class="control">
+                <input class="input" type="email" id="email" placeholder="user1@test.com" value="user1@test.com">
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">비밀번호</label>
+              <div class="control">
+                <input class="input" type="password" id="password" placeholder="password123" value="password123">
+              </div>
+            </div>
+            <div class="field">
+              <div class="control">
+                <button class="button is-primary" onclick="login()">로그인</button>
+              </div>
+            </div>
+            <p id="login-status"></p>
+          </div>
+
+          <!-- Events Section -->
+          <div class="box" id="events-section" style="display:none;">
+            <div class="level">
+              <div class="level-left">
+                <h2 class="title is-5 mb-0">📅 이벤트 목록</h2>
+              </div>
+              <div class="level-right">
+                <button class="button is-small is-light" onclick="loadEvents()">새로고침</button>
+              </div>
+            </div>
+            <hr>
+            <div id="events-list"></div>
+          </div>
+
+          <!-- Queue Section -->
+          <div class="box" id="queue-section" style="display:none;">
+            <h2 class="title is-5">⏳ 대기열 상태</h2>
+            <table class="table is-fullwidth">
+              <tbody>
+                <tr>
+                  <th>이벤트</th>
+                  <td id="queue-event-name">-</td>
+                </tr>
+                <tr>
+                  <th>상태</th>
+                  <td><span id="queue-status" class="tag">-</span></td>
+                </tr>
+                <tr>
+                  <th>대기 순번</th>
+                  <td id="queue-position">-</td>
+                </tr>
+                <tr>
+                  <th>남은 시간</th>
+                  <td id="queue-expires">-</td>
+                </tr>
+              </tbody>
+            </table>
+            <button class="button is-info is-light" onclick="checkQueueStatus()">상태 확인</button>
+          </div>
+
+          <!-- Reservation Section -->
+          <div class="box" id="reservation-section" style="display:none;">
+            <h2 class="title is-5">🎟️ 예약 정보</h2>
+            <table class="table is-fullwidth">
+              <tbody>
+                <tr>
+                  <th>예약 ID</th>
+                  <td><code id="reservation-id">-</code></td>
+                </tr>
+                <tr>
+                  <th>상태</th>
+                  <td><span id="reservation-status" class="tag">-</span></td>
+                </tr>
+                <tr>
+                  <th>만료 시간</th>
+                  <td id="reservation-expires">-</td>
+                </tr>
+              </tbody>
+            </table>
+            <button class="button is-success" id="pay-btn" onclick="processPayment()">💳 결제하기</button>
+          </div>
+
+          <!-- Notifications Log -->
+          <div class="box">
+            <div class="level">
+              <div class="level-left">
+                <h2 class="title is-5 mb-0">📢 실시간 알림</h2>
+              </div>
+              <div class="level-right">
+                <span id="ws-status" class="tag is-light">연결 안됨</span>
+              </div>
+            </div>
+            <hr>
+            <div id="notifications" class="notification-log content is-small"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    let token = null;
+    let socket = null;
+    let currentEventId = null;
+    let currentReservationId = null;
+    let expirationTimer = null;
+    const API_BASE = '';
+
+    function showStatus(elementId, message, type) {
+      const el = document.getElementById(elementId);
+      el.className = `notification is-${type} is-light`;
+      el.textContent = message;
+      el.style.display = 'block';
+    }
+
+    function addNotification(message, type = 'info') {
+      const container = document.getElementById('notifications');
+      const time = new Date().toLocaleTimeString();
+      const colorMap = { info: 'info', queue: 'warning', active: 'success', reservation: 'link', error: 'danger' };
+      const color = colorMap[type] || 'info';
+      container.innerHTML = `<p><span class="tag is-${color} is-light mr-2">${time}</span>${message}</p>` + container.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleString('ko-KR');
+    }
+
+    function updateCountdown(expiresAt) {
+      if (expirationTimer) clearInterval(expirationTimer);
+      const updateTimer = () => {
+        const diff = new Date(expiresAt) - new Date();
+        if (diff <= 0) {
+          document.getElementById('queue-expires').textContent = '만료됨';
+          document.getElementById('reservation-expires').textContent = '만료됨';
+          clearInterval(expirationTimer);
+          return;
+        }
+        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        const timeStr = `${minutes}분 ${seconds}초`;
+        document.getElementById('queue-expires').textContent = timeStr;
+        document.getElementById('reservation-expires').textContent = timeStr;
+      };
+      updateTimer();
+      expirationTimer = setInterval(updateTimer, 1000);
+    }
+
+    async function apiCall(method, path, body = null) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const options = { method, headers };
+      if (body) options.body = JSON.stringify(body);
+      const response = await fetch(`${API_BASE}${path}`, options);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'API Error');
+      return data;
+    }
+
+    async function login() {
+      try {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const data = await apiCall('POST', '/auth/login', { email, password });
+        token = data.accessToken;
+        showStatus('login-status', '✅ 로그인 성공!', 'success');
+        document.getElementById('events-section').style.display = 'block';
+        connectWebSocket();
+        loadEvents();
+      } catch (error) {
+        showStatus('login-status', `❌ 로그인 실패: ${error.message}`, 'danger');
+      }
+    }
+
+    function connectWebSocket() {
+      if (socket) socket.disconnect();
+      socket = io({ auth: { token } });
+
+      socket.on('connect', () => {
+        document.getElementById('ws-status').className = 'tag is-success';
+        document.getElementById('ws-status').textContent = '연결됨';
+        addNotification('WebSocket 연결됨', 'active');
+      });
+
+      socket.on('disconnect', () => {
+        document.getElementById('ws-status').className = 'tag is-danger';
+        document.getElementById('ws-status').textContent = '연결 끊김';
+        addNotification('WebSocket 연결 끊김', 'error');
+      });
+
+      socket.on('queue:position', (data) => {
+        addNotification(`대기 순번 업데이트: ${data.position}번`, 'queue');
+        document.getElementById('queue-position').textContent = data.position;
+      });
+
+      socket.on('queue:active', (data) => {
+        addNotification(`🎉 차례가 되었습니다! 예약 ID: ${data.reservationId}`, 'active');
+        document.getElementById('queue-status').textContent = 'ACTIVE';
+        document.getElementById('queue-status').className = 'tag is-success';
+        if (data.reservationId) {
+          currentReservationId = data.reservationId;
+          document.getElementById('reservation-section').style.display = 'block';
+          document.getElementById('reservation-id').textContent = data.reservationId;
+          document.getElementById('reservation-status').textContent = 'PENDING_PAYMENT';
+          document.getElementById('reservation-status').className = 'tag is-warning';
+          if (data.expiresAt) updateCountdown(data.expiresAt);
+        }
+      });
+
+      socket.on('queue:soldout', () => {
+        addNotification('😢 매진되었습니다.', 'error');
+        document.getElementById('queue-status').textContent = 'EXPIRED (매진)';
+        document.getElementById('queue-status').className = 'tag is-danger';
+      });
+
+      socket.on('reservation:expired', (data) => {
+        addNotification(`⏰ 예약이 만료되었습니다: ${data.reservationId}`, 'error');
+        document.getElementById('reservation-status').textContent = 'EXPIRED';
+        document.getElementById('reservation-status').className = 'tag is-danger';
+        document.getElementById('pay-btn').disabled = true;
+      });
+
+      socket.on('reservation:paid', (data) => {
+        addNotification(`✅ 결제 완료! 예약 ID: ${data.reservationId}`, 'reservation');
+        document.getElementById('reservation-status').textContent = 'PAID';
+        document.getElementById('reservation-status').className = 'tag is-success';
+        document.getElementById('pay-btn').disabled = true;
+        document.getElementById('pay-btn').textContent = '결제 완료 ✓';
+        if (expirationTimer) clearInterval(expirationTimer);
+      });
+    }
+
+    async function loadEvents() {
+      try {
+        const events = await apiCall('GET', '/events');
+        const container = document.getElementById('events-list');
+        if (events.length === 0) {
+          container.innerHTML = '<p class="has-text-grey">등록된 이벤트가 없습니다.</p>';
+          return;
+        }
+        container.innerHTML = events.map(event => `
+          <div class="box event-card">
+            <div class="level is-mobile">
+              <div class="level-left">
+                <div>
+                  <p class="title is-6">${event.name}</p>
+                  <p class="subtitle is-7 has-text-grey">
+                    🎫 ${event.remainingSeats ?? '?'}/${event.totalSeats}석 남음
+                  </p>
+                </div>
+              </div>
+              <div class="level-right">
+                <button class="button is-primary is-small" onclick="joinQueue('${event.id}', '${event.name}')">
+                  참가
+                </button>
+              </div>
+            </div>
+            <p class="is-size-7 has-text-grey">
+              📅 ${formatDate(event.salesStartAt)} ~ ${formatDate(event.salesEndAt)}
+            </p>
+          </div>
+        `).join('');
+      } catch (error) {
+        addNotification(`이벤트 로드 실패: ${error.message}`, 'error');
+      }
+    }
+
+    async function joinQueue(eventId, eventName) {
+      try {
+        currentEventId = eventId;
+        const data = await apiCall('POST', `/events/${eventId}/queue/join`);
+        document.getElementById('queue-section').style.display = 'block';
+        document.getElementById('queue-event-name').textContent = eventName;
+        document.getElementById('queue-status').textContent = data.status || 'WAITING';
+        document.getElementById('queue-status').className = `tag is-${data.status === 'ACTIVE' ? 'success' : 'warning'}`;
+        document.getElementById('queue-position').textContent = data.position;
+        addNotification(`대기열 참가 완료! 순번: ${data.position}`, 'queue');
+        if (data.status === 'ACTIVE' && data.reservationId) {
+          currentReservationId = data.reservationId;
+          document.getElementById('reservation-section').style.display = 'block';
+          document.getElementById('reservation-id').textContent = data.reservationId;
+          document.getElementById('reservation-status').textContent = 'PENDING_PAYMENT';
+          document.getElementById('reservation-status').className = 'tag is-warning';
+          if (data.expiresAt) updateCountdown(data.expiresAt);
+        }
+      } catch (error) {
+        addNotification(`대기열 참가 실패: ${error.message}`, 'error');
+      }
+    }
+
+    async function checkQueueStatus() {
+      if (!currentEventId) {
+        addNotification('먼저 이벤트에 참가하세요.', 'error');
+        return;
+      }
+      try {
+        const data = await apiCall('GET', `/events/${currentEventId}/queue/me`);
+        document.getElementById('queue-status').textContent = data.status;
+        document.getElementById('queue-status').className = `tag is-${data.status === 'ACTIVE' ? 'success' : data.status === 'DONE' ? 'info' : 'warning'}`;
+        document.getElementById('queue-position').textContent = data.position ?? '-';
+        if (data.expiresAt) updateCountdown(data.expiresAt);
+        if (data.status === 'ACTIVE' && data.reservationId) {
+          currentReservationId = data.reservationId;
+          document.getElementById('reservation-section').style.display = 'block';
+          document.getElementById('reservation-id').textContent = data.reservationId;
+          document.getElementById('reservation-status').textContent = data.reservationStatus || 'PENDING_PAYMENT';
+        }
+        addNotification(`상태 확인: ${data.status}, 순번: ${data.position ?? '-'}`, 'queue');
+      } catch (error) {
+        addNotification(`상태 확인 실패: ${error.message}`, 'error');
+      }
+    }
+
+    async function processPayment() {
+      if (!currentReservationId) {
+        addNotification('예약 정보가 없습니다.', 'error');
+        return;
+      }
+      try {
+        await apiCall('POST', `/reservations/${currentReservationId}/pay`);
+        document.getElementById('reservation-status').textContent = 'PAID';
+        document.getElementById('reservation-status').className = 'tag is-success';
+        document.getElementById('pay-btn').disabled = true;
+        document.getElementById('pay-btn').textContent = '결제 완료 ✓';
+        if (expirationTimer) clearInterval(expirationTimer);
+        document.getElementById('queue-expires').textContent = '-';
+        document.getElementById('reservation-expires').textContent = '-';
+        addNotification('🎉 결제가 완료되었습니다!', 'reservation');
+      } catch (error) {
+        addNotification(`결제 실패: ${error.message}`, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

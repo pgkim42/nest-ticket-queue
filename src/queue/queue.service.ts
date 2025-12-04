@@ -12,6 +12,7 @@ import { QueueEntry, QueueEntryStatus } from './entities/queue-entry.entity';
 import { RedisService } from '../redis/redis.service';
 import { EventsService } from '../events/events.service';
 import { ReservationsService } from '../reservations/reservations.service';
+import { NotificationService } from '../notification/notification.service';
 import { QueueStatusDto, JoinQueueResponseDto } from './dto/queue-status.dto';
 import { Reservation } from '../reservations/entities/reservation.entity';
 
@@ -35,6 +36,7 @@ export class QueueService {
     private readonly eventsService: EventsService,
     @Inject(forwardRef(() => ReservationsService))
     private readonly reservationsService: ReservationsService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async joinQueue(eventId: string, userId: string): Promise<JoinQueueResponseDto> {
@@ -198,6 +200,13 @@ export class QueueService {
         `User ${userId} promoted to ACTIVE for event ${eventId}, reservation ${reservation.id}`,
       );
 
+      // Send WebSocket notification for ACTIVE promotion (Requirement 4.3)
+      this.notificationService.notifyActiveStatus(userId, {
+        eventId,
+        reservationId: reservation.id,
+        expiresAt: reservation.expiresAt,
+      });
+
       return {
         success: true,
         userId,
@@ -236,6 +245,9 @@ export class QueueService {
     this.logger.log(
       `User ${userId} marked as EXPIRED (sold out) for event ${eventId}`,
     );
+
+    // Send WebSocket notification for sold out (Requirement 8.4)
+    this.notificationService.notifySoldOut(userId, { eventId });
 
     return {
       success: false,

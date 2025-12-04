@@ -7,6 +7,7 @@ import { QueueEntry, QueueEntryStatus } from './entities/queue-entry.entity';
 import { RedisService } from '../redis/redis.service';
 import { EventsService } from '../events/events.service';
 import { ReservationsService } from '../reservations/reservations.service';
+import { NotificationService } from '../notification/notification.service';
 
 describe('QueueService', () => {
   let service: QueueService;
@@ -64,6 +65,14 @@ describe('QueueService', () => {
       findByEventAndUser: jest.fn(),
     };
 
+    const mockNotificationService = {
+      notifyQueuePosition: jest.fn(),
+      notifyActiveStatus: jest.fn(),
+      notifySoldOut: jest.fn(),
+      notifyReservationExpired: jest.fn(),
+      notifyPaymentSuccess: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         QueueService,
@@ -82,6 +91,10 @@ describe('QueueService', () => {
         {
           provide: ReservationsService,
           useValue: mockReservationsService,
+        },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
         },
       ],
     }).compile();

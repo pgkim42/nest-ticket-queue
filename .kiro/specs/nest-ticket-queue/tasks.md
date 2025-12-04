@@ -211,6 +211,7 @@
 
 
 
+
   - [x] 7.1 Implement ACTIVE user management in RedisService
 
 
@@ -260,32 +261,51 @@
     - _Requirements: 4.1, 4.2, 4.4, 4.5, 5.1, 5.2, 5.3_
   - **Commit**: `feat(queue): implement FIFO promotion with oversell prevention`
 
-- [ ] 8. Checkpoint - Ensure all tests pass
+- [x] 8. Checkpoint - Ensure all tests pass
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
   - **Commit (if fixes needed)**: `fix: resolve queue/reservation test failures`
 
-- [ ] 9. Implement payment and expiration handling
-  - [ ] 9.1 Implement payment endpoint
+- [x] 9. Implement payment and expiration handling
+
+
+
+
+  - [x] 9.1 Implement payment endpoint
+
     - POST /reservations/:id/pay
     - Verify ownership and PENDING_PAYMENT status
     - Verify not expired (expiresAt > now)
     - Update status to PAID, set paidAt
     - Update QueueEntry status to DONE
     - _Requirements: 6.1, 6.2, 6.3, 5.5_
-  - [ ] 9.2 Implement reservation expiration with idempotency
+
+
+  - [x] 9.2 Implement reservation expiration with idempotency
     - Create BullMQ delayed job on reservation creation (delay = 5 minutes)
     - On job execution: check if still PENDING_PAYMENT
     - Use Redis SETNX for idempotency lock (reservationExpired:{id})
     - If first to expire: INCR seat, update status to EXPIRED, update QueueEntry to EXPIRED
     - Trigger next user promotion after expiration
+
     - _Requirements: 7.1, 7.2, 7.3, 4.4_
-  - [ ] 9.3 Write property test for expiration idempotency (CRITICAL)
+  - [x] 9.3 Write property test for expiration idempotency (CRITICAL)
+
     - **Property 8: Reservation Expiration Idempotency**
     - **Validates: Requirements 7.2, 7.3, 12.2**
-  - [ ] 9.4 Write property test for ACTIVE status TTL
+
+
+  - [x] 9.4 Write property test for ACTIVE status TTL
     - **Property 5: ACTIVE Status TTL Enforcement**
     - **Validates: Requirements 4.2, 4.4**
-  - [ ] 9.5 Write unit tests for payment and expiration
+  - [x] 9.5 Write unit tests for payment and expiration
+
+
+
     - Test successful payment
     - Test expired reservation payment rejection
     - Test ownership validation
@@ -293,85 +313,140 @@
     - _Requirements: 6.1, 6.2, 6.3, 7.1, 7.2, 7.3_
   - **Commit**: `feat(reservation): add payment and idempotent expiration`
 
-- [ ] 10. Checkpoint - Ensure all tests pass
+- [x] 10. Checkpoint - Ensure all tests pass
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
   - **Commit (if fixes needed)**: `fix: resolve payment/expiration issues`
 
-- [ ] 11. Implement WebSocket notification module
-  - [ ] 11.1 Create NotificationModule and WebSocket Gateway
+- [x] 11. Implement WebSocket notification module
+
+
+
+
+  - [x] 11.1 Create NotificationModule and WebSocket Gateway
+
     - Install `@nestjs/websockets` and `socket.io`
     - Create NotificationGateway with JWT authentication
     - Implement handleConnection with token validation
     - _Requirements: 8.1, 9.4_
-  - [ ] 11.2 Implement user-specific room management
+
+
+  - [x] 11.2 Implement user-specific room management
+
     - Join user to room `user:{userId}` on connection
     - Handle disconnection and reconnection
+
     - _Requirements: 8.5_
-  - [ ] 11.3 Implement NotificationService
+
+
+  - [x] 11.3 Implement NotificationService
     - notifyQueuePosition: emit `queue:position` event
     - notifyActiveStatus: emit `queue:active` event with reservation details
     - notifySoldOut: emit `queue:soldout` event
     - notifyReservationExpired: emit `reservation:expired` event
     - notifyPaymentSuccess: emit `reservation:paid` event
+
     - _Requirements: 8.2, 8.3, 8.4_
-  - [ ] 11.4 Integrate notifications into existing services
+
+
+  - [x] 11.4 Integrate notifications into existing services
+
     - QueueService: notify on position change and ACTIVE promotion
     - ReservationService: notify on payment success and expiration
+
     - _Requirements: 4.3, 6.4, 7.4_
-  - [ ] 11.5 Write unit tests for NotificationService
+  - [x] 11.5 Write unit tests for NotificationService
+
     - Test event emission
     - Test room management
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
   - **Commit**: `feat(notification): add WebSocket gateway with events`
 
-- [ ] 12. Implement Admin statistics endpoint
-  - [ ] 12.1 Create admin statistics endpoint
+- [x] 12. Implement Admin statistics endpoint
+
+
+
+
+
+
+  - [x] 12.1 Create admin statistics endpoint
+
     - GET /admin/events/:id/stats (admin only, protected by RolesGuard)
     - Return remaining seats from Redis
     - Return queue length
     - Return reservation counts by status (PENDING_PAYMENT, PAID, EXPIRED)
     - _Requirements: 10.1, 10.2, 10.3_
-  - [ ] 12.2 Write unit tests for statistics endpoint
+
+  - [x] 12.2 Write unit tests for statistics endpoint
+
     - Test stats aggregation
     - _Requirements: 10.1, 10.2, 10.3_
   - **Commit**: `feat(admin): add event statistics endpoint`
 
-- [ ] 13. Implement DTO validation and serialization
-  - [ ] 13.1 Create DTOs with class-validator decorators
+- [x] 13. Implement DTO validation and serialization
+
+
+
+
+
+
+  - [x] 13.1 Create DTOs with class-validator decorators
+
     - CreateEventDto, EventResponseDto
     - JoinQueueDto, QueueStatusDto
     - ReservationResponseDto
     - LoginDto, AuthResponseDto
     - StatsResponseDto
     - _Requirements: 11.1, 11.2_
-  - [ ] 13.2 Configure global validation pipe
+
+  - [x] 13.2 Configure global validation pipe
+
     - Enable whitelist and transform options
     - Set up consistent date serialization (ISO 8601)
     - _Requirements: 11.1, 11.2_
-  - [ ] 13.3 Write property test for serialization round-trip
+
+  - [x] 13.3 Write property test for serialization round-trip
+
     - **Property 10: Domain Object Serialization Round-Trip**
     - **Validates: Requirements 11.3**
-  - [ ] 13.4 Write unit tests for DTO validation
+
+  - [x] 13.4 Write unit tests for DTO validation
+
     - Test required field validation
     - Test type validation
     - _Requirements: 11.2_
   - **Commit**: `feat(dto): add validation and serialization`
 
-- [ ] 14. Final integration and E2E testing
-  - [ ] 14.1 Create simple demo HTML page
+- [x] 14. Final integration and E2E testing
+
+
+
+
+
+
+  - [x] 14.1 Create simple demo HTML page
+
     - Basic UI for queue join, payment
     - WebSocket connection for real-time updates
     - Display queue position, ACTIVE status, reservation details
     - _Requirements: Non-functional (demo)_
-  - [ ] 14.2 Write E2E test for complete ticketing flow
+
+  - [x] 14.2 Write E2E test for complete ticketing flow
+
     - User login → Queue join → Wait for ACTIVE promotion → Receive reservation → Pay
     - _Requirements: All_
-  - [ ] 14.3 Write integration test for concurrent promotion scenario
+
+  - [x] 14.3 Write integration test for concurrent promotion scenario
+
     - Multiple users in queue competing for last seat
     - Verify exactly one gets reservation, others get sold out
     - _Requirements: 12.1_
   - **Commit**: `feat: add demo page and E2E tests`
 
-- [ ] 15. Final Checkpoint - Ensure all tests pass
+- [x] 15. Final Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
   - **Commit**: `chore: finalize v1.0 release`
