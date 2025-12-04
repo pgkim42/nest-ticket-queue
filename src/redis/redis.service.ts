@@ -66,9 +66,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // Queue operations
   async addToQueue(eventId: string, userId: string): Promise<number> {
     const timestamp = Date.now();
-    await this.client.zadd(`queue:${eventId}`, timestamp, userId);
+    // NX option: only add if not exists (for idempotency)
+    await this.client.zadd(`queue:${eventId}`, 'NX', timestamp, userId);
     const position = await this.client.zrank(`queue:${eventId}`, userId);
     return position !== null ? position + 1 : 1;
+  }
+
+  async isInQueue(eventId: string, userId: string): Promise<boolean> {
+    const score = await this.client.zscore(`queue:${eventId}`, userId);
+    return score !== null;
   }
 
   async getQueuePosition(

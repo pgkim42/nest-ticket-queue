@@ -41,135 +41,219 @@
 
   - **Commit**: `chore: initialize NestJS project with infrastructure`
 
-- [ ] 2. Implement User and Authentication module
-  - [ ] 2.1 Create User entity and repository
+- [x] 2. Implement User and Authentication module
+
+
+
+
+
+
+
+
+
+  - [x] 2.1 Create User entity and repository
+
     - Define User entity with id, email, passwordHash, name, role (USER/ADMIN), timestamps
     - Create UsersModule and UsersService
     - _Requirements: 9.1_
-  - [ ] 2.2 Implement AuthModule with JWT strategy
+
+  - [x] 2.2 Implement AuthModule with JWT strategy
+
     - Install `@nestjs/jwt` and `@nestjs/passport`
     - Create JwtStrategy for token validation
     - Implement login endpoint returning JWT token
     - _Requirements: 9.1, 9.2_
-  - [ ] 2.3 Create JwtAuthGuard and RolesGuard for protected routes
+
+  - [x] 2.3 Create JwtAuthGuard and RolesGuard for protected routes
+
     - Implement guard that validates JWT from Authorization header
     - Create CurrentUser decorator to extract user from request
     - Create RolesGuard for admin-only endpoints
     - _Requirements: 9.2, 9.3_
-  - [ ] 2.4 Write property test for JWT authentication
+  - [x] 2.4 Write property test for JWT authentication
+
+
     - **Property 11: JWT Authentication Correctness**
     - **Validates: Requirements 9.2, 9.3**
-  - [ ] 2.5 Write unit tests for AuthService
+  - [x] 2.5 Write unit tests for AuthService
+
+
     - Test login with valid/invalid credentials
     - Test token generation and validation
     - _Requirements: 9.1, 9.2, 9.3_
   - **Commit**: `feat(auth): implement JWT authentication with guards`
 
-- [ ] 3. Implement Events module
-  - [ ] 3.1 Create Event entity and repository
+- [x] 3. Implement Events module
+
+
+
+
+
+
+  - [x] 3.1 Create Event entity and repository
+
     - Define Event entity with id, name, totalSeats, salesStartAt, salesEndAt, timestamps
     - Create EventsModule and EventsService
     - _Requirements: 1.1_
-  - [ ] 3.2 Implement event CRUD endpoints
+
+  - [x] 3.2 Implement event CRUD endpoints
+
     - POST /admin/events - Create event (admin only)
     - GET /events - List all events
     - GET /events/:id - Get event details with remaining seats
     - _Requirements: 1.1, 1.2, 1.3_
-  - [ ] 3.3 Implement Redis seat counter initialization
+
+  - [x] 3.3 Implement Redis seat counter initialization
+
     - On event creation, initialize `remainingSeats:{eventId}` in Redis
     - Implement getRemainingSeats method in RedisService
     - _Requirements: 1.4_
-  - [ ] 3.4 Write property test for event creation and Redis initialization
+
+  - [x] 3.4 Write property test for event creation and Redis initialization
+
     - **Property 1: Event Creation Initializes Redis Counter**
     - **Validates: Requirements 1.4**
-  - [ ] 3.5 Write unit tests for EventsService
+
+  - [x] 3.5 Write unit tests for EventsService
+
     - Test event creation
     - Test event retrieval with Redis seat count
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
   - **Commit**: `feat(events): add event CRUD with Redis seat counter`
 
-- [ ] 4. Checkpoint - Ensure all tests pass
+- [x] 4. Checkpoint - Ensure all tests pass
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
   - **Commit (if fixes needed)**: `fix: resolve test failures in auth/events`
 
-- [ ] 5. Implement Queue module - Core logic
-  - [ ] 5.1 Create QueueEntry entity and repository
+- [x] 5. Implement Queue module - Core logic
+
+
+
+
+
+  - [x] 5.1 Create QueueEntry entity and repository
+
+
     - Define QueueEntry entity with id, eventId, userId, status, position, reservationId (nullable), timestamps
     - Define QueueEntryStatus enum (WAITING, ACTIVE, DONE, EXPIRED)
     - _Requirements: 2.5_
-  - [ ] 5.2 Implement Redis queue operations in RedisService
+
+  - [x] 5.2 Implement Redis queue operations in RedisService
+
     - addToQueue: ZADD queue:{eventId} with timestamp as score
     - getQueuePosition: ZRANK to get position
     - getQueueLength: ZCARD to get total count
     - removeFromQueue: ZREM to remove user
     - _Requirements: 2.1_
-  - [ ] 5.3 Implement queue join endpoint
+
+  - [x] 5.3 Implement queue join endpoint
+
     - POST /events/:id/queue/join
     - Validate sales period (salesStartAt <= now <= salesEndAt)
     - Check for duplicate entry (idempotent join)
     - Add to Redis queue and create QueueEntry in DB
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
-  - [ ] 5.4 Write property test for queue join idempotency
+
+  - [x] 5.4 Write property test for queue join idempotency
+
     - **Property 2: Queue Join Idempotency**
     - **Validates: Requirements 2.2**
-  - [ ] 5.5 Write property test for sales period enforcement
+
+  - [x] 5.5 Write property test for sales period enforcement
+
     - **Property 3: Sales Period Enforcement**
     - **Validates: Requirements 2.3, 2.4**
-  - [ ] 5.6 Implement queue position query endpoint
+
+  - [x] 5.6 Implement queue position query endpoint
+
     - GET /events/:id/queue/me
     - Return current position and status
     - Include remaining time (expiresAt) if ACTIVE
     - _Requirements: 3.1, 3.2, 3.3_
-  - [ ] 5.7 Write unit tests for QueueService
+
+  - [x] 5.7 Write unit tests for QueueService
+
     - Test queue join
     - Test position query
     - Test duplicate join handling
     - _Requirements: 2.1, 2.2, 3.1, 3.2_
   - **Commit**: `feat(queue): implement queue join and position query`
 
-- [ ] 6. Implement Reservation entity and atomic seat operations
-  - [ ] 6.1 Create Reservation entity and repository
+- [x] 6. Implement Reservation entity and atomic seat operations
+
+
+
+
+
+
+  - [x] 6.1 Create Reservation entity and repository
+
     - Define Reservation entity with id, eventId, userId, status, expiresAt, paidAt, timestamps
     - Define ReservationStatus enum (PENDING_PAYMENT, PAID, CANCELED, EXPIRED)
     - Note: CANCELED is defined for future use but not created in this implementation
     - _Requirements: 4.2_
-  - [ ] 6.2 Implement atomic seat decrement in RedisService
+
+  - [x] 6.2 Implement atomic seat decrement in RedisService
+
     - decrementSeats: DECR remainingSeats:{eventId}
     - incrementSeats: INCR remainingSeats:{eventId}
     - These MUST be atomic Redis operations
     - _Requirements: 5.1_
   - **Commit**: `feat(reservation): add entity and atomic seat ops`
 
-- [ ] 7. Implement Queue promotion with integrated reservation creation (Critical)
-  - [ ] 7.1 Implement ACTIVE user management in RedisService
+- [x] 7. Implement Queue promotion with integrated reservation creation (Critical)
+
+
+
+
+  - [x] 7.1 Implement ACTIVE user management in RedisService
+
+
     - setActiveUser: SETEX active:{eventId}:{userId} with TTL
     - isActiveUser: EXISTS check
     - removeActiveUser: DEL
     - getActiveCount: Track concurrent active users
     - _Requirements: 4.2_
-  - [ ] 7.2 Implement queue promotion with seat decrement and reservation creation
+  - [x] 7.2 Implement queue promotion with seat decrement and reservation creation
+
+
     - promoteNextUser: Get next user from queue (FIFO)
     - Execute DECR remainingSeats:{eventId}
     - If result >= 0: Create Reservation (PENDING_PAYMENT, expiresAt=now+5min), set ACTIVE
     - If result < 0: INCR to restore, mark user as EXPIRED (sold out)
     - Single 5-minute timer covers entire payment window
     - _Requirements: 4.1, 4.2, 4.4, 5.1, 5.2, 5.3_
-  - [ ] 7.3 Write property test for FIFO promotion order
+  - [x] 7.3 Write property test for FIFO promotion order
+
+
     - **Property 4: Queue Promotion FIFO Order**
     - **Validates: Requirements 4.1**
-  - [ ] 7.4 Write property test for oversell prevention (CRITICAL)
+  - [x] 7.4 Write property test for oversell prevention (CRITICAL)
+
+
     - **Property 6: Reservation Seat Decrement Atomicity (Oversell Prevention)**
     - **Validates: Requirements 5.1, 5.2, 5.3, 12.1**
-  - [ ] 7.5 Write property test for concurrent last-seat promotion (CRITICAL)
+  - [x] 7.5 Write property test for concurrent last-seat promotion (CRITICAL)
+
+
     - **Property 9: Concurrent Last-Seat Reservation**
     - Test concurrent promotion attempts for last seat
     - **Validates: Requirements 12.1**
-  - [ ] 7.6 Implement promotion trigger mechanism
+  - [x] 7.6 Implement promotion trigger mechanism
+
+
     - Option A: Scheduler-based periodic promotion check
     - Option B: Event-driven promotion when slot becomes available
     - Respect concurrent ACTIVE user limit
     - _Requirements: 4.4, 4.5_
-  - [ ] 7.7 Write unit tests for queue promotion
+  - [x] 7.7 Write unit tests for queue promotion
+
+
     - Test promotion order
     - Test concurrent active user limit
     - Test sold out handling
